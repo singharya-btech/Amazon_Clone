@@ -121,7 +121,7 @@ const Admin = () => {
     setDescription("");
     setImageData("");
 
-    navigate("/shop");
+    navigate("/");
   };
 
   return (

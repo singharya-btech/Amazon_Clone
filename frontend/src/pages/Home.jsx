@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Header from "../components/Header";
 import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
 import Footer from "../components/Footer";
+import { getProducts } from "../services/productService";
 
 import {
   banner1,
@@ -20,51 +21,104 @@ import {
 
 import "./Home.css";
 
+const seedProducts = [
+  {
+    id: 1,
+    image: product1,
+    title: "Men's T-Shirt",
+    price: 999,
+    rating: 5,
+  },
+  {
+    id: 2,
+    image: product2,
+    title: "Men's Suit",
+    price: 899,
+    rating: 4,
+  },
+  {
+    id: 3,
+    image: product3,
+    title: "Children's Toy",
+    price: 349,
+    rating: 5,
+  },
+  {
+    id: 4,
+    image: product4,
+    title: "Toy Car",
+    price: 1299,
+    rating: 5,
+  },
+  {
+    id: 5,
+    image: product5,
+    title: "Smart Phone",
+    price: 199,
+    rating: 4,
+  },
+  {
+    id: 6,
+    image: product6,
+    title: "Phone",
+    price: 59,
+    rating: 4,
+  },
+];
+
 const Home = () => {
-  const products = [
-    {
-      id: 1,
-      image: product1,
-      title: "Men's T-Shirt",
-      price: 999,
-      rating: 5,
-    },
-    {
-      id: 2,
-      image: product2,
-      title: "Men's Suit",
-      price: 899,
-      rating: 4,
-    },
-    {
-      id: 3,
-      image: product3,
-      title: "Children's Toy",
-      price: 349,
-      rating: 5,
-    },
-    {
-      id: 4,
-      image: product4,
-      title: "Toy Car",
-      price: 1299,
-      rating: 5,
-    },
-    {
-      id: 5,
-      image: product5,
-      title: "Smart Phone",
-      price: 199,
-      rating: 4,
-    },
-    {
-      id: 6,
-      image: product6,
-      title: "Phone",
-      price: 59,
-      rating: 4,
-    },
-  ];
+  const [products, setProducts] = useState(seedProducts);
+
+  // Fetch products from the backend so admin-added products are visible on the home page too.
+  // Also fall back to localStorage so products added by an admin (stored there as a fallback)
+  // are visible on the main page for every user — registered or not — even when the backend
+  // is unreachable.
+  useEffect(() => {
+    let active = true;
+    const loadProducts = async () => {
+      // Read any admin-added products from localStorage (fallback for offline/demo mode)
+      let storedProducts = [];
+      try {
+        const stored = localStorage.getItem("products");
+        storedProducts = stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        storedProducts = [];
+      }
+
+      let backendProducts = [];
+      try {
+        const data = await getProducts();
+        backendProducts = data.map((p) => ({
+          id: p.id,
+          slug: p.slug,
+          title: p.name,
+          price: p.price,
+          rating: p.rating,
+          image: p.image,
+        }));
+      } catch (err) {
+        console.error("Unable to load products from backend:", err);
+      }
+
+      if (!active) return;
+
+      // Merge: backend products (newest first) + localStorage products (admin-added) + seed products
+      const merged = [...backendProducts, ...storedProducts, ...seedProducts];
+      // Deduplicate by slug (or id/title as fallback)
+      const seen = new Set();
+      const unique = merged.filter((product) => {
+        const key = product.slug || String(product.id) || product.title;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+      setProducts(unique);
+    };
+    loadProducts();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <>
@@ -132,7 +186,7 @@ const Home = () => {
 
           <div className="productGrid">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.slug || product.id} product={product} />
             ))}
           </div>
         </section>

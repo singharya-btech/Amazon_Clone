@@ -4,6 +4,7 @@ import Header from "../components/Header";
 import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
 import Footer from "../components/Footer";
+import { getProducts } from "../services/productService";
 
 import {
   product1,
@@ -20,25 +21,25 @@ const allProducts = [
   {
     id: 1,
     image: product1,
-    title: "Apple iPhone 15 Pro",
+    title: "Men's T-Shirt",
     price: 999,
     rating: 5,
-    category: "Mobiles",
-    brand: "Apple",
+    category: "Fashion",
+    brand: "Gucci",
   },
   {
     id: 2,
     image: product2,
-    title: "Samsung Galaxy S24 Ultra",
+    title: "Men's Suit",
     price: 899,
     rating: 4,
-    category: "Mobiles",
-    brand: "Samsung",
+    category: "Fashion",
+    brand: "Gucci",
   },
   {
     id: 3,
     image: product3,
-    title: "Sony WH-1000XM5 Headphones",
+    title: "Toy Car",
     price: 349,
     rating: 5,
     category: "Electronics",
@@ -47,29 +48,29 @@ const allProducts = [
   {
     id: 4,
     image: product4,
-    title: "MacBook Air M3",
+    title: "Toys for Children",
     price: 1299,
     rating: 5,
-    category: "Electronics",
-    brand: "Apple",
+    category: "Accessories",
+    brand: "Logitech",
   },
   {
     id: 5,
     image: product5,
-    title: "Smart Watch",
-    price: 199,
+    title: "Smart Phone",
+    price: 9999,
     rating: 4,
     category: "Electronics",
-    brand: "Noise",
+    brand: "Sumsung",
   },
   {
     id: 6,
     image: product6,
-    title: "Gaming Mouse",
-    price: 59,
+    title: "Phone",
+    price: 19999,
     rating: 4,
-    category: "Accessories",
-    brand: "Logitech",
+    category: "Electronics",
+    brand: "Apple",
   },
 ];
 
@@ -83,6 +84,8 @@ const Shop = () => {
   const [brand, setBrand] = useState("All");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [backendProducts, setBackendProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(true);
 
   useEffect(() => {
     // update category when URL changes
@@ -90,7 +93,41 @@ const Shop = () => {
     setCategory(p);
   }, [location.search]);
 
-  // Load any admin-added products from localStorage and merge
+  // Fetch products from the backend so that products added by an admin
+  // (stored in the shared MongoDB database) are visible to every user.
+  useEffect(() => {
+    let active = true;
+    const loadBackendProducts = async () => {
+      try {
+        const data = await getProducts();
+        const mapped = data.map((p) => ({
+          id: p.id,
+          slug: p.slug,
+          title: p.name,
+          price: p.price,
+          rating: p.rating,
+          category: p.category_name || p.category,
+          brand: p.brand,
+          image: p.image,
+          description: p.description,
+          num_reviews: p.num_reviews,
+          owner: p.owner_username,
+        }));
+        if (active) setBackendProducts(mapped);
+      } catch (err) {
+        console.error("Unable to load products from backend:", err);
+        if (active) setBackendProducts([]);
+      } finally {
+        if (active) setProductsLoading(false);
+      }
+    };
+    loadBackendProducts();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // Read any admin-added products from localStorage (fallback for offline/demo mode)
   let storedProducts = [];
   try {
     const stored = localStorage.getItem("products");
@@ -99,11 +136,22 @@ const Shop = () => {
     storedProducts = [];
   }
 
-  const merged = [...storedProducts, ...allProducts];
-  const categories = ["All", ...new Set(merged.map((product) => product.category).filter(Boolean))];
-  const brands = ["All", ...new Set(merged.map((product) => product.brand).filter(Boolean))];
+  // Merge: backend products (shared) + localStorage products (fallback) + hardcoded seed products
+  const merged = [...backendProducts, ...storedProducts, ...allProducts];
 
-  const filteredProducts = merged.filter((product) => {
+  // Deduplicate by slug (or id/title as fallback) to avoid showing the same product twice
+  const seen = new Set();
+  const uniqueMerged = merged.filter((product) => {
+    const key = product.slug || String(product.id) || product.title;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const categories = ["All", ...new Set(uniqueMerged.map((product) => product.category).filter(Boolean))];
+  const brands = ["All", ...new Set(uniqueMerged.map((product) => product.brand).filter(Boolean))];
+
+  const filteredProducts = uniqueMerged.filter((product) => {
     const matchesSearch = product.title
       .toLowerCase()
       .includes(search.toLowerCase());
@@ -170,10 +218,14 @@ const Shop = () => {
 
           {filteredProducts.length > 0 ? (
             filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard key={product.slug || product.id} product={product} />
             ))
           ) : (
             <h2 className="shop__empty">No products found for these filters.</h2>
+          )}
+
+          {productsLoading && (
+            <p className="shop__loading">Loading more products…</p>
           )}
 
         </div>

@@ -15,7 +15,7 @@ const ProductCard = ({ product }) => {
 
   return (
     <div className="productCard">
-      <Link to={`/product/${product.id}`} className="productCard__link" aria-label={`View ${product.title}`}>
+      <Link to={`/product/${product.slug || product.id}`} className="productCard__link" aria-label={`View ${product.title}`}>
         <img
           src={product.image}
           alt={product.title}
@@ -24,7 +24,7 @@ const ProductCard = ({ product }) => {
       </Link>
 
       <div className="productCard__info">
-        <Link to={`/product/${product.id}`} className="productCard__link">
+        <Link to={`/product/${product.slug || product.id}`} className="productCard__link">
           <h3 className="productCard__title">{product.title}</h3>
         </Link>
 

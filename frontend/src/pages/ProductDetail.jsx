@@ -19,6 +19,7 @@ import "./ProductDetail.css";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { createProductReview, getProductReviews } from "../services/reviewService";
+import { getProductById } from "../services/productService";
 
 const products = [
   {
@@ -92,7 +93,48 @@ const products = [
 const ProductDetail = () => {
   const { id } = useParams();
 
-  const product = products.find((item) => item.id === id);
+  const [backendProduct, setBackendProduct] = useState(null);
+  const [backendLoading, setBackendLoading] = useState(false);
+
+  // Try to find the product in the hardcoded seed list first
+  const localProduct = products.find((item) => String(item.id) === String(id));
+
+  // If not found locally, fetch it from the backend (admin-added products live in MongoDB)
+  useEffect(() => {
+    if (localProduct) return;
+
+    let active = true;
+    const fetchBackendProduct = async () => {
+      setBackendLoading(true);
+      try {
+        const data = await getProductById(id);
+        if (active) {
+          setBackendProduct({
+            id: data.id,
+            slug: data.slug,
+            title: data.name,
+            image: data.image,
+            price: data.price,
+            rating: data.rating,
+            category: data.category_name || data.category,
+            brand: data.brand,
+            description: data.description,
+            num_reviews: data.num_reviews,
+          });
+        }
+      } catch (err) {
+        console.error("Unable to load product from backend:", err);
+      } finally {
+        if (active) setBackendLoading(false);
+      }
+    };
+    fetchBackendProduct();
+    return () => {
+      active = false;
+    };
+  }, [id, localProduct]);
+
+  const product = localProduct || backendProduct;
 
   const [quantity, setQuantity] = useState(1);
   const [reviews, setReviews] = useState([]);
@@ -168,7 +210,7 @@ const ProductDetail = () => {
         <Navbar />
 
         <div className="productNotFound">
-          <h2>Product Not Found</h2>
+          <h2>{backendLoading ? "Loading product…" : "Product Not Found"}</h2>
         </div>
 
         <Footer />
