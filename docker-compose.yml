@@ -1,17 +1,10 @@
 # =============================================================================
 # Production-ready Docker Compose for the Amazon Clone marketplace
 # =============================================================================
-# Services:
-#   - database-service  : PostgreSQL 16 (persistent data)
-#   - backend-service   : Django REST API + Gunicorn
-#   - frontend-service  : React SPA served by nginx (reverse-proxies /api/)
-#
-# All secrets and tunables are loaded from the .env file at the project root.
-# =============================================================================
 
 services:
   # ---------------------------------------------------------------------------
-  # PostgreSQL database
+  # PostgreSQL Database
   # ---------------------------------------------------------------------------
   database-service:
     image: postgres:16-alpine
@@ -33,80 +26,90 @@ services:
       - marketplace
 
   # ---------------------------------------------------------------------------
-  # Django backend (REST API + admin)
+  # Django Backend
   # ---------------------------------------------------------------------------
   backend-service:
+    image: aryasingh1234/amazone_clone:backend-V4
     build:
       context: ./backend
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+
     environment:
-      # Django settings
       DJANGO_DEBUG: ${DJANGO_DEBUG}
       DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
       DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS}
-      # CORS
+
       CORS_ALLOW_ALL_ORIGINS: ${CORS_ALLOW_ALL_ORIGINS}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
-      # PostgreSQL connection
+
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      # Gunicorn tuning
+
       GUNICORN_WORKERS: ${GUNICORN_WORKERS}
       GUNICORN_THREADS: ${GUNICORN_THREADS}
       GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT}
+
     depends_on:
       database-service:
         condition: service_healthy
+
     ports:
       - "8000:8000"
+
     volumes:
       - media_data:/app/media
       - static_data:/app/staticfiles
+
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 30s
+
     networks:
       - marketplace
 
   # ---------------------------------------------------------------------------
-  # React frontend (served by nginx, reverse-proxies /api/ to backend)
+  # React Frontend
   # ---------------------------------------------------------------------------
   frontend-service:
+    image: aryasingh1234/amazone_clone:frontend-V4
     build:
       context: ./frontend
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env
+
     environment:
-      # Tell the nginx template which backend to proxy to
       BACKEND_HOST: ${BACKEND_HOST}
       BACKEND_PORT: ${BACKEND_PORT}
+
     depends_on:
       backend-service:
         condition: service_healthy
+
     ports:
       - "3000:80"
+
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:80/ || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 5
       start_period: 10s
+
     networks:
       - marketplace
 
 # =============================================================================
-# Networks — single internal bridge so containers can reach each other by
-# service name but cannot be reached from the host (except via published ports).
+# Networks
 # =============================================================================
 networks:
   marketplace:
@@ -114,7 +117,7 @@ networks:
     internal: true
 
 # =============================================================================
-# Named volumes for persistent data
+# Volumes
 # =============================================================================
 volumes:
   postgres_data:
