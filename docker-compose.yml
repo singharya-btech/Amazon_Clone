@@ -1,0 +1,146 @@
+version: "3.9"
+
+services:
+
+  # ==========================================
+  # MySQL Database
+  # ==========================================
+  mysql:
+    image: mysql:8.0
+    container_name: amazon_mysql
+    restart: unless-stopped
+
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-admin}
+      MYSQL_DATABASE: ${DB_NAME:-amazon_clone}
+
+    ports:
+      - "3307:3306"
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-admin}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - amazon_net
+
+
+  # ==========================================
+  # Django Backend
+  # ==========================================
+  backend:
+    image: aryasingh1234/amazone_clone:backend-V3
+
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+
+    container_name: amazon_backend
+
+    restart: unless-stopped
+
+    env_file:
+      - ./backend/.env
+
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - media_data:/app/media
+      - static_data:/app/staticfiles
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    command: >
+      sh -c "
+      python manage.py migrate &&
+      python manage.py seed_data &&
+      gunicorn amazon_clone.wsgi:application
+      --bind 0.0.0.0:8000
+      --workers 3
+      --timeout 120
+      "
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/products/categories/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+    networks:
+      - amazon_net
+
+
+  # ==========================================
+  # React Frontend
+  # ==========================================
+  frontend:
+    image: aryasingh1234/amazone_clone:frontend-V3
+
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+
+    container_name: amazon_frontend
+
+    restart: unless-stopped
+
+    ports:
+      - "3000:80"
+
+    depends_on:
+      - backend
+
+    networks:
+      - amazon_net
+
+
+  # ==========================================
+  # Nginx Reverse Proxy
+  # ==========================================
+  nginx:
+    image: nginx:alpine
+
+    container_name: amazon_nginx
+
+    restart: unless-stopped
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - static_data:/var/www/static:ro
+      - media_data:/var/www/media:ro
+
+    depends_on:
+      - backend
+      - frontend
+
+    networks:
+      - amazon_net
+
+
+volumes:
+  mysql_data:
+  media_data:
+  static_data:
+
+
+networks:
+  amazon_net:
+    driver: bridge

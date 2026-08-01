@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-amazon-background text-gray-900 overflow-x-hidden;
+  }
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.amazon-btn-primary {
+  @apply bg-gradient-to-b from-yellow-300 to-amazon-yellow text-amazon-blue border border-yellow-600 rounded px-4 py-1.5 font-medium hover:from-yellow-400 hover:to-amazon-button_hover transition duration-150 shadow-sm active:scale-[0.99];
+}
+
+.amazon-btn-secondary {
+  @apply bg-gradient-to-b from-gray-100 to-gray-200 text-gray-800 border border-gray-400 rounded px-4 py-1.5 font-medium hover:from-gray-200 hover:to-gray-300 transition duration-150 shadow-sm active:scale-[0.99];
+}

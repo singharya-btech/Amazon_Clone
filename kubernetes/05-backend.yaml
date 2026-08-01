@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: amazon-clone
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: amazon-clone-backend:latest
+          ports:
+            - containerPort: 8000
+          env:
+            - name: SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: amazon-secrets
+                  key: SECRET_KEY
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: amazon-secrets
+                  key: JWT_SECRET
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: amazon-secrets
+                  key: MYSQL_PASSWORD
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: amazon-config
+                  key: MYSQL_DATABASE
+            - name: DB_USER
+              valueFrom:
+                configMapKeyRef:
+                  name: amazon-config
+                  key: MYSQL_USER
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: amazon-config
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: amazon-config
+                  key: DB_PORT
+            - name: DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: amazon-config
+                  key: DEBUG
+            - name: ALLOWED_HOSTS
+              valueFrom:
+                configMapKeyRef:
+                  name: amazon-config
+                  key: ALLOWED_HOSTS
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          volumeMounts:
+            - name: media-storage
+              mountPath: /app/media
+      volumes:
+        - name: media-storage
+          persistentVolumeClaim:
+            claimName: media-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: amazon-clone
+spec:
+  ports:
+    - port: 8000
+      targetPort: 8000
+  selector:
+    app: backend

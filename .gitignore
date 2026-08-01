@@ -1,0 +1,30 @@
+# Node dependencies
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.cache/
+
+# Python / Django
+backend/__pycache__/
+backend/*/__pycache__/
+backend/*/*/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+backend/venv/
+backend/env/
+backend/staticfiles/
+backend/media/
+
+# Environment Variables
+.env
+backend/.env
+frontend/.env
+*.env.local
+
+# Docker & IDE
+.vscode/
+.idea/
+*.swp
+.DS_Store
+coverage/
