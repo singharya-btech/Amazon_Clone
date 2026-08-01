@@ -1,0 +1,23 @@
+services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+
+  backend-service:
+    build: ./backend
+    image: gyrojojo/amazon-backend:v7
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_HOST=mongodb
+
+  frontend:
+    build: ./frontend
+    image: gyrojojo/amazon-frontend:v6
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend-service
