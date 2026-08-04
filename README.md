@@ -84,10 +84,10 @@ This repository is a **graduated learning project** that builds an Amazon-inspir
 
 | Version | Database | Purpose |
 |---------|----------|---------|
-| V1 | **PostgreSQL** | Primary relational database |
-| V2 | PostgreSQL + Redis (caching) | Production data + caching |
-| V3 | PostgreSQL + MongoDB + Redis + Elasticsearch | Polyglot persistence |
-| V4 | Per-service databases | Distributed data |
+| V1 | **MongoDB** | Primary relational database |
+| V2 | MongoDB + Redis (caching) | Production data + caching |
+| V3 | MySQL + Redis + Elasticsearch | Polyglot persistence |
+| V4 | PoatgreSQL | Distributed data |
 
 ### DevOps & Cloud
 
